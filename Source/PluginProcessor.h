@@ -53,7 +53,24 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+    void updateAttackFactor(float factor);
+
 private:
     //==============================================================================
+
+    double fastAttackCoef;
+    double fastDecayCoef;
+    double slowAttackCoef;
+    double slowDecayCoef;
+
+    std::vector< double> fastEnvelope;
+    std::vector< double> slowEnvelope;
+
+    float attackFactor;
+
+
+
+
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TransientShaperAudioProcessor)
 };

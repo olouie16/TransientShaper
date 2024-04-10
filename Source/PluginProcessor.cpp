@@ -93,8 +93,27 @@ void TransientShaperAudioProcessor::changeProgramName (int index, const juce::St
 //==============================================================================
 void TransientShaperAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    // Use this method as the place to do any pre-playback
-    // initialisation that you need..
+    int totalNumInputChannels = getTotalNumInputChannels();
+    int totalNumOutputChannels = getTotalNumOutputChannels();
+
+
+    float fastAttackInMs = 0.01;
+    float slowAttackInMs = 1;
+    float fastDecayInMs = 100;
+    float slowDecayInMs = 100;
+
+
+    fastAttackCoef = 1 - exp(-1 / (fastAttackInMs * sampleRate * 0.001));
+    fastDecayCoef = 1 - exp(-1 / (fastDecayInMs * sampleRate * 0.001));
+    slowAttackCoef = 1 - exp(-1 / (slowAttackInMs * sampleRate * 0.001));
+    slowDecayCoef = 1 - exp(-1 / (slowDecayInMs * sampleRate * 0.001));
+
+
+    fastEnvelope = std::vector<double>(totalNumInputChannels, 0);
+    slowEnvelope = std::vector<double>(totalNumInputChannels, 0);
+
+    attackFactor = 0;
+
 }
 
 void TransientShaperAudioProcessor::releaseResources()
@@ -135,27 +154,35 @@ void TransientShaperAudioProcessor::processBlock (juce::AudioBuffer<float>& buff
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-    // In case we have more outputs than inputs, this code clears any output
-    // channels that didn't contain input data, (because these aren't
-    // guaranteed to be empty - they may contain garbage).
-    // This is here to avoid people getting screaming feedback
-    // when they first compile a plugin, but obviously you don't need to keep
-    // this code if your algorithm always overwrites all the output channels.
+
+    // In case we have more outputs than inputs, this avoids garbage
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
-
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-    // Make sure to reset the state if your inner loop is processing
-    // the samples and the outer loop is handling the channels.
-    // Alternatively, you can process the samples with the channels
-    // interleaved by keeping the same state.
+    double absSample;
     for (int channel = 0; channel < totalNumInputChannels; ++channel)
     {
         auto* channelData = buffer.getWritePointer (channel);
+        for (int i = 0; i < buffer.getNumSamples(); i++) {
 
-        // ..do something to the data...
+            absSample = abs(channelData[i]);
+            fastEnvelope[channel] += (absSample - fastEnvelope[channel]) * (absSample > fastEnvelope[channel] ? fastAttackCoef : fastDecayCoef);
+            slowEnvelope[channel] += (absSample - slowEnvelope[channel]) * (absSample > slowEnvelope[channel] ? slowAttackCoef : slowDecayCoef);
+
+
+            if (fastEnvelope[channel] > 0 && slowEnvelope[channel] > 0) {
+
+                channelData[i] *= pow(pow(fastEnvelope[channel] / slowEnvelope[channel] -1,2) +1, attackFactor);
+            }
+        }
     }
+
+
+}
+
+
+void TransientShaperAudioProcessor::updateAttackFactor(float factor) {
+
+    attackFactor = factor;
 }
 
 //==============================================================================
@@ -189,3 +216,6 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new TransientShaperAudioProcessor();
 }
+
+
+
