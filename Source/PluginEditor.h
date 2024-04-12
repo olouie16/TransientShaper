@@ -17,7 +17,9 @@
 class TransientShaperAudioProcessorEditor  : public juce::AudioProcessorEditor
 {
 public:
-    TransientShaperAudioProcessorEditor (TransientShaperAudioProcessor&);
+    typedef juce::AudioProcessorValueTreeState::SliderAttachment SliderAttachment;
+
+    TransientShaperAudioProcessorEditor (TransientShaperAudioProcessor&, juce::AudioProcessorValueTreeState&);
     ~TransientShaperAudioProcessorEditor() override;
 
     //==============================================================================
@@ -28,9 +30,13 @@ private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     TransientShaperAudioProcessor& audioProcessor;
+    juce::AudioProcessorValueTreeState& valueTreeState;
+
 
     juce::Slider attackFactorSlider;
+    std::unique_ptr<SliderAttachment> attackFactorAttachment;
     juce::Slider releaseFactorSlider;
+    std::unique_ptr<SliderAttachment> releaseFactorAttachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TransientShaperAudioProcessorEditor)
 };

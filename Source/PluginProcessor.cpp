@@ -11,8 +11,23 @@
 
 //==============================================================================
 TransientShaperAudioProcessor::TransientShaperAudioProcessor()
+    : parameters(*this, nullptr, "params",
+        {
+
+            std::make_unique<juce::AudioParameterFloat>("attackFactor", // parameterID
+                                                            "AttackFactor", // parameter name
+                                                            -3.0f,   // minimum value
+                                                            3.0f,   // maximum value
+                                                            0.0f), // default value
+
+            std::make_unique<juce::AudioParameterFloat>("releaseFactor", // parameterID
+                                                            "ReleaseFactor", // parameter name
+                                                            -5.0f,   // minimum value
+                                                            5.0f,   // maximum value
+                                                            0.0f)  // default value
+        })
 #ifndef JucePlugin_PreferredChannelConfigurations
-     : AudioProcessor (BusesProperties()
+     ,AudioProcessor (BusesProperties()
                      #if ! JucePlugin_IsMidiEffect
                       #if ! JucePlugin_IsSynth
                        .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
@@ -22,6 +37,11 @@ TransientShaperAudioProcessor::TransientShaperAudioProcessor()
                        )
 #endif
 {
+
+    attackFactor = parameters.getRawParameterValue("attackFactor");
+    releaseFactor = parameters.getRawParameterValue("releaseFactor");
+
+
 }
 
 TransientShaperAudioProcessor::~TransientShaperAudioProcessor()
@@ -121,8 +141,6 @@ void TransientShaperAudioProcessor::prepareToPlay (double sampleRate, int sample
     fastEnvelopeRel = std::vector<double>(totalNumInputChannels, 0);
     slowEnvelopeRel = std::vector<double>(totalNumInputChannels, 0);
 
-    attackFactor = 0;
-    releaseFactor = 0;
 
 }
 
@@ -186,7 +204,7 @@ void TransientShaperAudioProcessor::processBlock (juce::AudioBuffer<float>& buff
 
                 float a = fastEnvelopeAtt[channel] / slowEnvelopeAtt[channel]; //high while attack, else near 1
                 a = pow(a - 1, 2) + 1; //get non attack values closer to 1, while boosting higher attack values
-                a = pow(a, attackFactor); //userinput, q^0=1 -> no change, q^+x>1 and q^-x<1 -> positive input boosts and negative values decreases volume
+                a = pow(a, *attackFactor); //userinput, q^0=1 -> no change, q^+x>1 and q^-x<1 -> positive input boosts and negative values decreases volume
 
                 channelData[i] *= a;
             }
@@ -196,7 +214,7 @@ void TransientShaperAudioProcessor::processBlock (juce::AudioBuffer<float>& buff
 
                 float r = fastEnvelopeRel[channel] / slowEnvelopeRel[channel]; //high while attack, else near 1
                 r = pow(r - 1, 2) + 1; //get non attack values closer to 1, while boosting higher attack values
-                r = pow(r, releaseFactor); //userinput, q^0=1 -> no change, q^+x>1 and q^-x<1 -> positive input boosts and negative values decreases volume
+                r = pow(r, *releaseFactor); //userinput, q^0=1 -> no change, q^+x>1 and q^-x<1 -> positive input boosts and negative values decreases volume
 
                 channelData[i] *= r;
             }
@@ -210,12 +228,12 @@ void TransientShaperAudioProcessor::processBlock (juce::AudioBuffer<float>& buff
 
 void TransientShaperAudioProcessor::updateAttackFactor(float factor) {
 
-    attackFactor = factor;
+    *attackFactor = factor;
 }
 
 void TransientShaperAudioProcessor::updateReleaseFactor(float factor) {
 
-    releaseFactor = factor;
+    *releaseFactor = factor;
 }
 
 //==============================================================================
@@ -226,21 +244,24 @@ bool TransientShaperAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* TransientShaperAudioProcessor::createEditor()
 {
-    return new TransientShaperAudioProcessorEditor (*this);
+    return new TransientShaperAudioProcessorEditor (*this, parameters);
 }
 
 //==============================================================================
 void TransientShaperAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
-    // You should use this method to store your parameters in the memory block.
-    // You could do that either as raw data, or use the XML or ValueTree classes
-    // as intermediaries to make it easy to save and load complex data.
+    auto state = parameters.copyState();
+    std::unique_ptr<juce::XmlElement> xml(state.createXml());
+    copyXmlToBinary(*xml, destData);
 }
 
 void TransientShaperAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    // You should use this method to restore your parameters from this memory block,
-    // whose contents will have been created by the getStateInformation() call.
+    std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
+
+    if (xmlState.get() != nullptr)
+        if (xmlState->hasTagName(parameters.state.getType()))
+            parameters.replaceState(juce::ValueTree::fromXml(*xmlState));
 }
 
 //==============================================================================

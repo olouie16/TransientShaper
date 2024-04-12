@@ -59,6 +59,8 @@ public:
 private:
     //==============================================================================
 
+    juce::AudioProcessorValueTreeState parameters;
+
     double fastAttackCoefAtt;
     double fastReleaseCoefAtt;
     double slowAttackCoefAtt;
@@ -75,8 +77,8 @@ private:
     std::vector< double> fastEnvelopeRel;
     std::vector< double> slowEnvelopeRel;
 
-    float attackFactor;
-    float releaseFactor;
+    std::atomic<float>* attackFactor;
+    std::atomic<float>* releaseFactor;
 
 
 
