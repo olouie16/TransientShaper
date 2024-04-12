@@ -94,25 +94,35 @@ void TransientShaperAudioProcessor::changeProgramName (int index, const juce::St
 void TransientShaperAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     int totalNumInputChannels = getTotalNumInputChannels();
-    int totalNumOutputChannels = getTotalNumOutputChannels();
+    //int totalNumOutputChannels = getTotalNumOutputChannels();
 
 
-    float fastAttackInMs = 0.01;
-    float slowAttackInMs = 1;
-    float fastDecayInMs = 100;
-    float slowDecayInMs = 100;
+    float attackInS = 0.00001;
+    float releaseInS = 0.100;
+
+    float slowAttackInS = 0.001;
+    float slowReleaseInS = 0.250;
 
 
-    fastAttackCoef = 1 - exp(-1 / (fastAttackInMs * sampleRate * 0.001));
-    fastDecayCoef = 1 - exp(-1 / (fastDecayInMs * sampleRate * 0.001));
-    slowAttackCoef = 1 - exp(-1 / (slowAttackInMs * sampleRate * 0.001));
-    slowDecayCoef = 1 - exp(-1 / (slowDecayInMs * sampleRate * 0.001));
+
+    fastAttackCoefAtt = 1 - exp(-1 / (attackInS * sampleRate));
+    fastReleaseCoefAtt = 1 - exp(-1 / (releaseInS * sampleRate));
+    slowAttackCoefAtt = 1 - exp(-1 / (slowAttackInS * sampleRate));
+    slowReleaseCoefAtt = 1 - exp(-1 / (releaseInS * sampleRate));
+
+    fastAttackCoefRel = 1 - exp(-1 / (attackInS * sampleRate));
+    fastReleaseCoefRel = 1 - exp(-1 / (releaseInS * sampleRate));
+    slowAttackCoefRel = 1 - exp(-1 / (attackInS * sampleRate));
+    slowReleaseCoefRel = 1 - exp(-1 / (slowReleaseInS * sampleRate));
 
 
-    fastEnvelope = std::vector<double>(totalNumInputChannels, 0);
-    slowEnvelope = std::vector<double>(totalNumInputChannels, 0);
+    fastEnvelopeAtt = std::vector<double>(totalNumInputChannels, 0);
+    slowEnvelopeAtt = std::vector<double>(totalNumInputChannels, 0);
+    fastEnvelopeRel = std::vector<double>(totalNumInputChannels, 0);
+    slowEnvelopeRel = std::vector<double>(totalNumInputChannels, 0);
 
     attackFactor = 0;
+    releaseFactor = 0;
 
 }
 
@@ -165,14 +175,32 @@ void TransientShaperAudioProcessor::processBlock (juce::AudioBuffer<float>& buff
         for (int i = 0; i < buffer.getNumSamples(); i++) {
 
             absSample = abs(channelData[i]);
-            fastEnvelope[channel] += (absSample - fastEnvelope[channel]) * (absSample > fastEnvelope[channel] ? fastAttackCoef : fastDecayCoef);
-            slowEnvelope[channel] += (absSample - slowEnvelope[channel]) * (absSample > slowEnvelope[channel] ? slowAttackCoef : slowDecayCoef);
+            fastEnvelopeAtt[channel] += (absSample - fastEnvelopeAtt[channel]) * (absSample > fastEnvelopeAtt[channel] ? fastAttackCoefAtt : fastReleaseCoefAtt);
+            slowEnvelopeAtt[channel] += (absSample - slowEnvelopeAtt[channel]) * (absSample > slowEnvelopeAtt[channel] ? slowAttackCoefAtt : slowReleaseCoefAtt);
+            fastEnvelopeRel[channel] += (absSample - fastEnvelopeRel[channel]) * (absSample > fastEnvelopeRel[channel] ? fastAttackCoefRel : fastReleaseCoefRel);
+            slowEnvelopeRel[channel] += (absSample - slowEnvelopeRel[channel]) * (absSample > slowEnvelopeRel[channel] ? slowAttackCoefRel : slowReleaseCoefRel);
 
 
-            if (fastEnvelope[channel] > 0 && slowEnvelope[channel] > 0) {
+            if (fastEnvelopeAtt[channel] > 0 && slowEnvelopeAtt[channel] > 0) {
 
-                channelData[i] *= pow(pow(fastEnvelope[channel] / slowEnvelope[channel] -1,2) +1, attackFactor);
+
+                float a = fastEnvelopeAtt[channel] / slowEnvelopeAtt[channel]; //high while attack, else near 1
+                a = pow(a - 1, 2) + 1; //get non attack values closer to 1, while boosting higher attack values
+                a = pow(a, attackFactor); //userinput, q^0=1 -> no change, q^+x>1 and q^-x<1 -> positive input boosts and negative values decreases volume
+
+                channelData[i] *= a;
             }
+
+            if (fastEnvelopeRel[channel] > 0 && slowEnvelopeRel[channel] > 0) {
+
+
+                float r = fastEnvelopeRel[channel] / slowEnvelopeRel[channel]; //high while attack, else near 1
+                r = pow(r - 1, 2) + 1; //get non attack values closer to 1, while boosting higher attack values
+                r = pow(r, releaseFactor); //userinput, q^0=1 -> no change, q^+x>1 and q^-x<1 -> positive input boosts and negative values decreases volume
+
+                channelData[i] *= r;
+            }
+
         }
     }
 
@@ -183,6 +211,11 @@ void TransientShaperAudioProcessor::processBlock (juce::AudioBuffer<float>& buff
 void TransientShaperAudioProcessor::updateAttackFactor(float factor) {
 
     attackFactor = factor;
+}
+
+void TransientShaperAudioProcessor::updateReleaseFactor(float factor) {
+
+    releaseFactor = factor;
 }
 
 //==============================================================================

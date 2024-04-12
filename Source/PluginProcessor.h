@@ -54,19 +54,29 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
     void updateAttackFactor(float factor);
+    void updateReleaseFactor(float factor);
 
 private:
     //==============================================================================
 
-    double fastAttackCoef;
-    double fastDecayCoef;
-    double slowAttackCoef;
-    double slowDecayCoef;
+    double fastAttackCoefAtt;
+    double fastReleaseCoefAtt;
+    double slowAttackCoefAtt;
+    double slowReleaseCoefAtt;
 
-    std::vector< double> fastEnvelope;
-    std::vector< double> slowEnvelope;
+    double fastAttackCoefRel;
+    double fastReleaseCoefRel;
+    double slowAttackCoefRel;
+    double slowReleaseCoefRel;
+
+    std::vector< double> fastEnvelopeAtt;
+    std::vector< double> slowEnvelopeAtt;
+
+    std::vector< double> fastEnvelopeRel;
+    std::vector< double> slowEnvelopeRel;
 
     float attackFactor;
+    float releaseFactor;
 
 
 

@@ -30,6 +30,7 @@ private:
     TransientShaperAudioProcessor& audioProcessor;
 
     juce::Slider attackFactorSlider;
+    juce::Slider releaseFactorSlider;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TransientShaperAudioProcessorEditor)
 };

@@ -22,6 +22,10 @@ TransientShaperAudioProcessorEditor::TransientShaperAudioProcessorEditor (Transi
     attackFactorSlider.setRange(-2.0, 2.0);
     attackFactorSlider.onValueChange = [this] {audioProcessor.updateAttackFactor(attackFactorSlider.getValue()); };
 
+    addAndMakeVisible(releaseFactorSlider);
+    releaseFactorSlider.setRange(-20.0, 20.0);
+    releaseFactorSlider.onValueChange = [this] {audioProcessor.updateReleaseFactor(releaseFactorSlider.getValue()); };
+
 }
 
 TransientShaperAudioProcessorEditor::~TransientShaperAudioProcessorEditor()
@@ -44,6 +48,7 @@ void TransientShaperAudioProcessorEditor::resized()
 
     float sliderLeft = 120;
     attackFactorSlider.setBounds(sliderLeft, 20, getWidth() - sliderLeft - 10, 20);
+    releaseFactorSlider.setBounds(sliderLeft, 60, getWidth() - sliderLeft - 10, 20);
 
 
 }
