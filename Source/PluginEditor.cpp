@@ -15,18 +15,29 @@ TransientShaperAudioProcessorEditor::TransientShaperAudioProcessorEditor (Transi
 {
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
-    setSize (400, 300);
+    setSize (300, 100);
 
 
     addAndMakeVisible(attackFactorSlider);
     attackFactorSlider.setRange(-2.0, 2.0);
-    //attackFactorSlider.onValueChange = [this] {audioProcessor.updateAttackFactor(attackFactorSlider.getValue()); };
+    attackFactorSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     attackFactorAttachment.reset(new SliderAttachment(valueTreeState, "attackFactor", attackFactorSlider));
+
+    addAndMakeVisible(attackFactorLabel);
+    attackFactorLabel.setText("Attack", juce::dontSendNotification);
+    attackFactorLabel.attachToComponent(&attackFactorSlider,true);
+    attackFactorLabel.setJustificationType(juce::Justification::centredRight);
+
 
     addAndMakeVisible(releaseFactorSlider);
     releaseFactorSlider.setRange(-20.0, 20.0);
-    //releaseFactorSlider.onValueChange = [this] {audioProcessor.updateReleaseFactor(releaseFactorSlider.getValue()); };
+    releaseFactorSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     releaseFactorAttachment.reset(new SliderAttachment(valueTreeState, "releaseFactor", releaseFactorSlider));
+
+    addAndMakeVisible(releaseFactorLabel);
+    releaseFactorLabel.setText("Release", juce::dontSendNotification);
+    releaseFactorLabel.attachToComponent(&releaseFactorSlider, true);
+    releaseFactorLabel.setJustificationType(juce::Justification::centredRight);
 
 }
 
@@ -48,7 +59,7 @@ void TransientShaperAudioProcessorEditor::resized()
     // subcomponents in your editor..
 
 
-    float sliderLeft = 120;
+    float sliderLeft = 60;
     attackFactorSlider.setBounds(sliderLeft, 20, getWidth() - sliderLeft - 10, 20);
     releaseFactorSlider.setBounds(sliderLeft, 60, getWidth() - sliderLeft - 10, 20);
 

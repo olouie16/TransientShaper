@@ -35,8 +35,12 @@ private:
 
     juce::Slider attackFactorSlider;
     std::unique_ptr<SliderAttachment> attackFactorAttachment;
+    juce::Label attackFactorLabel;
+
     juce::Slider releaseFactorSlider;
     std::unique_ptr<SliderAttachment> releaseFactorAttachment;
+    juce::Label releaseFactorLabel;
+
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TransientShaperAudioProcessorEditor)
 };
